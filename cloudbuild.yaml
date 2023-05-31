@@ -1,0 +1,35 @@
+steps:
+  - name: gcr.io/cloud-builders/git
+    args:
+      - '-c'
+      - |
+        echo "$$ENV_FILE" >> .env
+        chmod 400 .env
+    entrypoint: bash
+    secretEnv:
+      - ENV_FILE
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/datamate/datamate-ui:$COMMIT_SHA'
+      - .
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/datamate/datamate-ui:$COMMIT_SHA'
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    args:
+      - run
+      - deploy
+      - datamate-ui
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/datamate/datamate-ui:$COMMIT_SHA'
+      - '--region'
+      - us-central1
+      - '--allow-unauthenticated'
+    entrypoint: gcloud
+availableSecrets:
+  secretManager:
+    - versionName: projects/939237337111/secrets/ENV_FILE_DATAMATE_UI/versions/1
+      env: ENV_FILE
